@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Перетаскивание элемента</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f4;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .container {
+            width: 200px;
+            height: 200px;
+            border: 2px dashed #3498db;
+            background-color: #ecf0f1;
+            margin: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            color: #7f8c8d;
+            position: relative;
+        }
+
+        .moving-element {
+            width: 80px;
+            height: 80px;
+            background-color: #2ecc71;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 10px;
+            cursor: grab;
+            user-select: none;
+            position: absolute;
+            transition: transform 0.2s ease-in-out;
+        }
+
+        .moving-element:hover {
+            transform: scale(1.1);
+        }
+
+        .container.hovered {
+            border-color: #e74c3c;
+            background-color: #f9ebea;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container" id="container1"></div>
+    <div class="container" id="container2"></div>
+
+    <div class="moving-element" id="draggable">Перетащи меня</div>
+
+    <script>
+        const draggable = document.getElementById('draggable');
+        const containers = document.querySelectorAll('.container');
+
+        let isDragging = false;
+        let offsetX, offsetY;
+        let currentContainer = null;
+
+        // Начало перетаскивания
+        draggable.addEventListener('mousedown', (e) => {
+            isDragging = true;
+            // Смещение курсора относительно центра элемента
+            offsetX = e.clientX - draggable.getBoundingClientRect().left;
+            offsetY = e.clientY - draggable.getBoundingClientRect().top;
+            draggable.style.cursor = 'grabbing';
+        });
+
+        // Перемещение элемента
+        document.addEventListener('mousemove', (e) => {
+            if (isDragging) {
+                // Позиция элемента под курсором
+                draggable.style.left = `${e.clientX - offsetX}px`;
+                draggable.style.top = `${e.clientY - offsetY}px`;
+
+                // Проверка, над каким контейнером находится элемент
+                let isOverContainer = false;
+                containers.forEach(container => {
+                    const rect = container.getBoundingClientRect();
+                    if (
+                        e.clientX >= rect.left &&
+                        e.clientX <= rect.right &&
+                        e.clientY >= rect.top &&
+                        e.clientY <= rect.bottom
+                    ) {
+                        isOverContainer = true;
+                        container.classList.add('hovered');
+                        currentContainer = container;
+                    } else {
+                        container.classList.remove('hovered');
+                    }
+                });
+
+                if (!isOverContainer) {
+                    currentContainer = null;
+                }
+            }
+        });
+
+        // Завершение перетаскивания
+        document.addEventListener('mouseup', () => {
+            if (isDragging) {
+                isDragging = false;
+                draggable.style.cursor = 'grab';
+
+                // Если элемент отпущен над контейнером, фиксируем его по центру контейнера
+                if (currentContainer) {
+                    moveToCenter(currentContainer);
+                } else {
+                    // Если элемент отпущен вне контейнера, перемещаем его в ближайший контейнер
+                    moveToNearestContainer();
+                }
+            }
+        });
+
+        // Функция для перемещения элемента в центр контейнера
+        function moveToCenter(container) {
+            const containerRect = container.getBoundingClientRect();
+            const draggableRect = draggable.getBoundingClientRect();
+
+            // Вычисляем центр контейнера
+            const centerX = containerRect.left + containerRect.width / 2 - draggableRect.width / 2;
+            const centerY = containerRect.top + containerRect.height / 2 - draggableRect.height / 2;
+
+            // Устанавливаем позицию элемента по центру контейнера
+            draggable.style.left = `${centerX}px`;
+            draggable.style.top = `${centerY}px`;
+
+            container.classList.remove('hovered');
+        }
+
+        // Функция для перемещения элемента в ближайший контейнер
+        function moveToNearestContainer() {
+            let nearestContainer = null;
+            let minDistance = Infinity;
+
+            const draggableRect = draggable.getBoundingClientRect();
+            const draggableCenterX = draggableRect.left + draggableRect.width / 2;
+            const draggableCenterY = draggableRect.top + draggableRect.height / 2;
+
+            // Ищем ближайший контейнер
+            containers.forEach(container => {
+                const containerRect = container.getBoundingClientRect();
+                const containerCenterX = containerRect.left + containerRect.width / 2;
+                const containerCenterY = containerRect.top + containerRect.height / 2;
+
+                // Вычисляем расстояние между центрами элемента и контейнера
+                const distance = Math.sqrt(
+                    Math.pow(draggableCenterX - containerCenterX, 2) +
+                    Math.pow(draggableCenterY - containerCenterY, 2)
+                );
+
+                // Если это ближайший контейнер, запоминаем его
+                if (distance < minDistance) {
+                    minDistance = distance;
+                    nearestContainer = container;
+                }
+            });
+
+            // Если найден ближайший контейнер, перемещаем элемент в его центр
+            if (nearestContainer) {
+                moveToCenter(nearestContainer);
+            }
+        }
+    </script>
+
+</body>
+</html>
